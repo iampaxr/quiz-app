@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+    url      = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiZjI0Mjk0MjYtMDY5Zi00MzZjLWJlNWEtNDkxNmEyYjM3YTYzIiwidGVuYW50X2lkIjoiNjI5ZWZiY2M1NmE1NmRkNzIzZDQzNWYxNWNiNTdmMGYyZTIyOTk1Y2NmNTUxYzJlNTY1OTI3MWEyNDMyYTdlOSIsImludGVybmFsX3NlY3JldCI6ImQwNmRmMTlmLWI0Y2ItNGE5NS1iYWQ4LTg5NzBkZmNjNmIyMSJ9.FZ6bpBRZ39N_wEUyVvgpz6B5Se_Am2t9wdLY4kZTo6Q"
+
+}
+
+model User {
+  id                   String                 @id @unique @default(uuid())
+  name                 String
+  studyProgram         String?
+  speciality           String?
+  workPlace            String?
+  university           String?
+  promotion            String?
+  profileCompleted     Boolean                @default(false)
+  email                String?                @unique
+  emailVerified        DateTime?              @map("email_verified")
+  image                String?
+  isPremium            Boolean                @default(false) 
+  accounts             Account[]
+  sessions             Session[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  UserTestDetail       UserTestDetail[]
+  SimulationTestDetail SimulationTestDetail[]
+  Flag                 Flag[]
+  UserLearningHistory  UserLearningHistory[]
+  
+  @@index([id])
+}
+
+model Admin {
+  id        String   @id @unique @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([id])
+}
+
+  enum Program {
+    MEDICINE
+    PHARMACY
+    DENTISTRY
+  }
+
+model Category {
+  id                   String                 @id @unique @default(uuid())
+  name                 String                 @unique
+  question             Question[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  prevTopic         Boolean          @default(false)
+  UserTestDetail       UserTestDetail[]
+  deleted              Boolean                @default(false)
+  SimulationTestDetail SimulationTestDetail[]
+
+  @@index([id])
+}
+
+
+
+model Question {
+  id                    String                  @id @unique @default(uuid())
+  title                 String
+  categoryId            String
+  question              String
+  level                 Level                   @default(EASY)
+  choice                Choices[]
+  answer                String[]
+  isMultipleAnswer      Boolean                 @default(false)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  category              Category                @relation(fields: [categoryId], references: [id])
+  paragraph             String                  @default("")              
+  UserTestDetail        UserTestDetail[]
+  SimulationSingle      SimulationTestDetail[]  @relation("SingleQuestionSimulation")
+  SimulationMultiple    SimulationTestDetail[]  @relation("MultipleQuestionSimulation")
+  Flag                  Flag[]
+
+  @@index([id])
+  @@index([isMultipleAnswer])
+  @@index([categoryId])
+}
+
+enum Level {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model UserTestDetail {
+  id                String     @id @unique @default(cuid())
+  userId            String
+  question          Question[]
+  userAnswers       Json?
+  isTimed           Boolean    @default(false)
+  duration          Int?
+  numberOfQuestions Int
+  isCompleted       Boolean    @default(false)
+  categoryId        String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  testType          TestType
+  score             Float? // Percentage score
+  correctAnswers    Int? // Number of correct answers
+  incorrectAnswers  Int? // Number of incorrect answers
+  totalTimeTaken    Int? // Total time taken (in seconds)
+  accuracy          Float? // Accuracy rate
+  percentage        Int        @default(0) // Percentage score
+
+  category Category @relation(fields: [categoryId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([id])
+  @@index([userId])
+}
+
+model SimulationTestDetail {
+  id                String     @id @unique @default(cuid())
+  userId            String
+  singleQuestion    Question[] @relation("SingleQuestionSimulation")
+  multipleQuestion  Question[] @relation("MultipleQuestionSimulation")
+  userAnswers       Json?
+  isCompleted       Boolean    @default(false)
+  duration          Int?
+  numberOfQuestions Int
+  testType          TestType   @default(SIMULATION)
+  categoryId        String?
+  score             Float? // Percentage score
+  correctAnswers    Int? // Number of correct answers
+  incorrectAnswers  Int? // Number of incorrect answers
+  totalTimeTaken    Int? // Total time taken (in seconds)
+  accuracy          Float? // Accuracy rate
+  percentage        Int        @default(0) // Percentage score
+
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  user                  User                    @relation(fields: [userId], references: [id])
+  category              Category?               @relation(fields: [categoryId], references: [id])
+
+  @@index([id, userId])
+}
+
+model Choices {
+  id         String   @id @unique @default(uuid())
+  questionId String
+  text       String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([id])
+}
+
+model Flag {
+  id          String   @id @unique @default(uuid())
+  questionId  String
+  userId      String
+  description String
+  resolved    Boolean  @default(false)
+  comment     String?
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([id])
+}
+
+enum TestType {
+  TIMER
+  NOTIMER
+  SIMULATION
+}
+
+model Topic {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  pages       Int      @default(0)
+  docfileName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  UserLearningTopicIdsDetails UserLearningTopicIdsDetails[]
+}
+
+model UserLearningHistory {
+  id         String                        @id @default(uuid())
+  userId     String
+  userTopics UserLearningTopicIdsDetails[]
+  createdAt  DateTime                      @default(now())
+  updatedAt  DateTime                      @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([id])
+  @@index([userId])
+}
+
+model UserLearningTopicIdsDetails {
+  id          String   @id @default(uuid())
+  userId      String
+  topicId     String
+  currentPage Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  learningHistories UserLearningHistory[]
+  topic             Topic                 @relation(fields: [topicId], references: [id])
+
+  @@index([id, topicId, userId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
